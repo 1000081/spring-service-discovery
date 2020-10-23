@@ -1,6 +1,10 @@
 package maha.io.springdemo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+//import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+//import org.springframework.cloud.netflix.ribbon.RibbonClient;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -16,20 +20,24 @@ import java.util.Optional;
 @Service
 public class UserDetailsService {
 
+    @Value("${external-service.user-service}")
+    private String userServiceUrl;
+
+    @Value("${external-service.address-service}")
+    private String addressSetviceUrl;
+
+    @Autowired
+    private RestTemplate loadBalanced;
+
     public ResponseEntity<Map<String, String>> getUserDetails(){
         Map<String, String> resultMap = new HashMap<>();
 
-       String users = restTemplate().exchange("http://localhost:8081/users", HttpMethod.GET, null, String.class).getBody();
-       String address = restTemplate().exchange("http://localhost:8080/addresses", HttpMethod.GET, null, String.class).getBody();
+       String users = loadBalanced.exchange("http://userservice/users", HttpMethod.GET, null, String.class).getBody();
+       String address = loadBalanced.exchange(addressSetviceUrl, HttpMethod.GET, null, String.class).getBody();
 
         resultMap.put("users", users);
         resultMap.put("address", address);
 
         return new ResponseEntity<>(resultMap, HttpStatus.OK);
-    }
-
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
     }
 }
